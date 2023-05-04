@@ -32,7 +32,7 @@ enum Payload {
     Integer(isize),
     Cell(Rc<RefCell<Object>>, Rc<RefCell<Object>>),
     Symbol(Rc<str>),
-    Primitive(fn() -> ()),
+    Primitive(PrimitiveFunction),
     Function(),
     Macro,
     Environment,
@@ -48,9 +48,7 @@ enum Payload {
     Parentheses,
 }
 
-// // Typedef for the primitive function
-// struct Obj;
-// typedef struct Obj *Primitive(void *root, struct Obj **env, struct Obj **args);
+type PrimitiveFunction =  fn(void *root, struct Obj **env, struct Obj **args) -> Rc<RefCell<Object>>;
 
 #[derive(Debug, Default)]
 struct Object {
@@ -965,8 +963,7 @@ thread_local! {
 // }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    // Memory allocation
-    // memory = alloc_semispace();
+    let memory = alloc_semispace();
 
     SYMBOLS.with(|symbols| {
         *symbols.borrow_mut() = NIL;
