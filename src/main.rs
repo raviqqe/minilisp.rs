@@ -977,18 +977,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     // define_constants(root, env);
     // define_primitives(root, env);
 
-    // // The main loop
-    // for (;;) {
-    //     *expr = read_expr(root);
-    //     if (!*expr)
-    //         return 0;
-    //     if (*expr == Cparen)
-    //         error("Stray close parenthesis");
-    //     if (*expr == Dot)
-    //         error("Stray dot");
-    //     print(eval(root, env, expr));
-    //     printf("\n");
-    // }
+    for (;;) {
+        *expr = read_expr(root);
+        if (!*expr)
+            return 0;
+        if (*expr == Cparen)
+            error("Stray close parenthesis");
+        if (*expr == Dot)
+            error("Stray dot");
+        print(eval(root, env, expr));
+        printf("\n");
+    }
 
     Ok(())
 }
