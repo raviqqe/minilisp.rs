@@ -32,3 +32,8 @@ jobs:
       - run: |
           rustup run nightly cargo install cargo-udeps
           cargo +nightly udeps
+  readme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: raviqqe/markdown-link-check@main
