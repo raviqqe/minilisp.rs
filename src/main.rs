@@ -49,28 +49,12 @@ enum Payload {
 }
 
 type PrimitiveFunction =
-    fn(root: Option<usize>, environmnt: *mut Object, args: *mut Object) -> *mut Object;
+    fn(root: *mut (), environmnt: *mut Object, args: *mut Object) -> *mut Object;
 
 #[derive(Debug, Default)]
 struct Object {
     size: usize, // includes the size field itself and padding.
     payload: Payload,
-    // union {
-    //     // Function or Macro
-    //     struct {
-    //         struct Obj *params;
-    //         struct Obj *body;
-    //         struct Obj *env;
-    //     };
-    //     // Environment frame. This is a linked list of association lists
-    //     // containing the mapping from symbols to their value.
-    //     struct {
-    //         struct Obj *vars;
-    //         struct Obj *up;
-    //     };
-    //     // Forwarding pointer
-    //     void *moved;
-    // };
 }
 
 // Constants
