@@ -34,13 +34,13 @@ enum Object {
     // The marker that indicates the object has been moved to other location by GC. The new location
     // can be found at the forwarding pointer. Only the functions to do garbage collection set and
     // handle the object of this type. Other functions will never see the object of this type.
-    GcMoved,
+    Moved,
     // Const objects. They are statically allocated and will never be managed by GC.
-    TTRUE,
-    TNIL,
-    TDOT,
-    TCPAREN,
-};
+    True,
+    Nil,
+    Dot,
+    Parentheses,
+}
 
 // // Typedef for the primitive function
 // struct Obj;
