@@ -1,4 +1,8 @@
-use std::{cell::RefCell, error::Error, ptr::null};
+use std::{
+    cell::RefCell,
+    error::Error,
+    ptr::{null, null_mut},
+};
 
 // #include <assert.h>
 // #include <ctype.h>
@@ -946,23 +950,13 @@ fn allocate_semispace() -> *const () {
 //     add_primitive(root, env, "println", prim_println);
 // }
 
-// //======================================================================
-// // Entry point
-// //======================================================================
-
-// // Returns true if the environment variable is defined and not the empty string.
-// static bool getEnvFlag(char *name) {
-//     char *val = getenv(name);
-//     return val && val[0];
-// }
-
 fn main() -> Result<(), Box<dyn Error>> {
     let memory = allocate_semispace();
 
     SYMBOLS.with(|symbols| {
         *symbols.borrow_mut() = NIL;
     });
-    let root = None;
+    let root: *mut () = null_mut();
     // DEFINE2(environment, expression);
     let environment = make_environment(root, &NIL, &NIL);
     define_constants(root, environment);
