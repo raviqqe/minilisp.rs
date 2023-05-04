@@ -1,19 +1,10 @@
 use std::{
+    alloc::{alloc, Layout},
     cell::RefCell,
     error::Error,
+    mem::{size_of, ManuallyDrop},
     ptr::{null, null_mut},
 };
-
-// #include <assert.h>
-// #include <ctype.h>
-// #include <stdarg.h>
-// #include <stdbool.h>
-// #include <stddef.h>
-// #include <stdint.h>
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <string.h>
-// #include <sys/mman.h>
 
 // static __attribute((noreturn)) void error(char *fmt, ...) {
 //     va_list ap;
@@ -31,13 +22,13 @@ struct Function {
 }
 
 #[derive(Debug, Default)]
-enum Payload {
+enum Type {
     // Regular objects visible from the user
-    Integer(isize),
-    Cell(*mut Object, *mut Object),
-    Symbol(*const str),
-    Primitive(PrimitiveFunction),
-    Function(),
+    Integer,
+    Cell,
+    Symbol,
+    Primitive,
+    Function,
     Macro,
     Environment,
     // The marker that indicates the object has been moved to other location by GC. The new location
@@ -55,28 +46,53 @@ enum Payload {
 type PrimitiveFunction =
     fn(root: *mut (), environmnt: *mut Object, args: *mut Object) -> *mut Object;
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 struct Object {
+    r#type: Type,
     size: usize, // includes the size field itself and padding.
     payload: Payload,
 }
 
+struct Cell {
+    car: *mut Object,
+    cdr: *mut Object,
+}
+
+union Payload {
+    none: (),
+    integer: isize,
+    cell: ManuallyDrop<Cell>,
+    symbol: *const str,
+    primitive: PrimitiveFunction,
+    function: ManuallyDrop<Function>,
+}
+
+impl Default for Payload {
+    fn default() -> Self {
+        Payload { none: () }
+    }
+}
+
 // Constants
 const TRUE: Object = Object {
-    r#payload: Payload::True,
+    r#type: Type::True,
     size: 0,
+    payload: Payload::default(),
 };
 const NIL: Object = Object {
-    r#payload: Payload::Nil,
+    r#type: Type::Nil,
     size: 0,
+    payload: Payload::default(),
 };
 const DOT: Object = Object {
-    r#payload: Payload::Dot,
+    r#type: Type::Dot,
     size: 0,
+    payload: Payload::default(),
 };
 const PARENTHESES: Object = Object {
-    r#payload: Payload::Parentheses,
+    r#type: Type::Parentheses,
     size: 0,
+    payload: Payload::default(),
 };
 
 // The list containing all symbols. Such data structure is traditionally called the "obarray", but I
@@ -101,14 +117,10 @@ thread_local! {
 
     // The number of bytes allocated from the heap
     static USED_MEMORY: usize = 0;
+
+    // Flags to debug GC
+    static GC_RUNNING: bool = false;
 }
-
-// // Flags to debug GC
-// static bool gc_running = false;
-// static bool debug_gc = false;
-// static bool always_gc = false;
-
-// static void gc(void *root);
 
 // // Currently we are using Cheney's copying GC algorithm, with which the available memory is split
 // // into two halves and all objects are moved from one half to another every time GC is invoked. That
@@ -160,51 +172,47 @@ thread_local! {
 //     Obj **var3 = (Obj **)(root_ADD_ROOT_ + 3);  \
 //     Obj **var4 = (Obj **)(root_ADD_ROOT_ + 4)
 
-// // Round up the given value to a multiple of size. Size must be a power of 2. It adds size - 1
-// // first, then zero-ing the least significant bits to make the result a multiple of size. I know
-// // these bit operations may look a little bit tricky, but it's efficient and thus frequently used.
-// static inline size_t roundup(size_t var, size_t size) {
-//     return (var + size - 1) & ~(size - 1);
-// }
+// Round up the given value to a multiple of unit. The unit must be a power of 2. It adds size - 1
+// first, then zero-ing the least significant bits to make the result a multiple of size. I know
+// these bit operations may look a little bit tricky, but it's efficient and thus frequently used.
+fn round_up(size: usize, unit: usize) -> usize {
+    return (size + unit - 1) & !(unit - 1);
+}
 
-// // Allocates memory block. This may start GC if we don't have enough memory.
-// static Obj *alloc(void *root, int type, size_t size) {
-//     // The object must be large enough to contain a pointer for the forwarding pointer. Make it
-//     // larger if it's smaller than that.
-//     size = roundup(size, sizeof(void *));
+// Allocates memory block. This may start GC if we don't have enough memory.
+fn allocate(root: *mut (), r#type: Type, size: usize) -> *mut Object {
+    // The object must be large enough to contain a pointer for the forwarding pointer. Make it
+    // larger if it's smaller than that.
+    size = round_up(size, size_of::<*const ()>());
 
-//     // Add the size of the type tag and size fields.
-//     size += offsetof(Obj, value);
+    // Add the size of the type tag and size fields.
+    size += offsetof(Object, value);
 
-//     // Round up the object size to the nearest alignment boundary, so that the next object will be
-//     // allocated at the proper alignment boundary. Currently we align the object at the same
-//     // boundary as the pointer.
-//     size = roundup(size, sizeof(void *));
+    // Round up the object size to the nearest alignment boundary, so that the next object will be
+    // allocated at the proper alignment boundary. Currently we align the object at the same
+    // boundary as the pointer.
+    size = round_up(size, size_of::<*const ()>());
 
-//     // If the debug flag is on, allocate a new memory space to force all the existing objects to
-//     // move to new addresses, to invalidate the old addresses. By doing this the GC behavior becomes
-//     // more predictable and repeatable. If there's a memory bug that the C variable has a direct
-//     // reference to a Lisp object, the pointer will become invalid by this GC call. Dereferencing
-//     // that will immediately cause SEGV.
-//     if (always_gc && !gc_running)
-//         gc(root);
+    if MEMORY_SIZE < USED_MEMORY.with(|pointer| *pointer) + size {
+        gc(root);
+    }
 
-//     // Otherwise, run GC only when the available memory is not large enough.
-//     if (!always_gc && MEMORY_SIZE < mem_nused + size)
-//         gc(root);
+    // Terminate the program if we couldn't satisfy the memory request. This can happen if the
+    // requested size was too large or the from-space was filled with too many live objects.
+    if MEMORY_SIZE < USED_MEMORY + size {
+        panic!("Memory exhausted");
+    }
 
-//     // Terminate the program if we couldn't satisfy the memory request. This can happen if the
-//     // requested size was too large or the from-space was filled with too many live objects.
-//     if (MEMORY_SIZE < mem_nused + size)
-//         error("Memory exhausted");
+    // Allocate the object.
+    let object = (memory + USED_MEMORY) as *mut Object;
 
-//     // Allocate the object.
-//     Obj *obj = memory + mem_nused;
-//     obj->type = type;
-//     obj->size = size;
-//     mem_nused += size;
-//     return obj;
-// }
+    object.r#type = r#type;
+    object.size = size;
+
+    USED_MEMORY.with(|pointer| *pointer.borrow_mut() += size);
+
+    return object;
+}
 
 // //======================================================================
 // // Garbage collector
@@ -244,15 +252,8 @@ thread_local! {
 //     return newloc;
 // }
 
-fn allocate_semispace() -> *const () {
-    mmap(
-        NULL,
-        MEMORY_SIZE,
-        PROT_READ | PROT_WRITE,
-        MAP_PRIVATE | MAP_ANON,
-        -1,
-        0,
-    )
+fn allocate_semispace() -> *mut () {
+    (unsafe { alloc(Layout::new(MEMORY_SIZE, size_of::<*const ()>())) }) as *mut ()
 }
 
 // // Copies the root objects.
@@ -357,12 +358,16 @@ fn allocate_semispace() -> *const () {
 //     return r;
 // }
 
-// struct Obj *make_env(void *root, Obj **vars, Obj **up) {
-//     Obj *r = alloc(root, TENV, sizeof(Obj *) * 2);
-//     r->vars = *vars;
-//     r->up = *up;
-//     return r;
-// }
+fn make_environment(
+    root: *mut (),
+    variables: *mut *mut Object,
+    up: *mut *mut Object,
+) -> *mut Object {
+    let environment = unsafe { allocate(root, Type::Environment, size_of::<Object>() * 2) };
+    environment.vars = *vars;
+    environment.up = *up;
+    return environment;
+}
 
 // // Returns ((x . y) . a)
 // static Obj *acons(void *root, Obj **x, Obj **y, Obj **a) {
@@ -927,28 +932,29 @@ fn allocate_semispace() -> *const () {
 //     add_variable(root, env, sym, &True);
 // }
 
-// static void define_primitives(void *root, Obj **env) {
-//     add_primitive(root, env, "quote", prim_quote);
-//     add_primitive(root, env, "cons", prim_cons);
-//     add_primitive(root, env, "car", prim_car);
-//     add_primitive(root, env, "cdr", prim_cdr);
-//     add_primitive(root, env, "setq", prim_setq);
-//     add_primitive(root, env, "setcar", prim_setcar);
-//     add_primitive(root, env, "while", prim_while);
-//     add_primitive(root, env, "gensym", prim_gensym);
-//     add_primitive(root, env, "+", prim_plus);
-//     add_primitive(root, env, "-", prim_minus);
-//     add_primitive(root, env, "<", prim_lt);
-//     add_primitive(root, env, "define", prim_define);
-//     add_primitive(root, env, "defun", prim_defun);
-//     add_primitive(root, env, "defmacro", prim_defmacro);
-//     add_primitive(root, env, "macroexpand", prim_macroexpand);
-//     add_primitive(root, env, "lambda", prim_lambda);
-//     add_primitive(root, env, "if", prim_if);
-//     add_primitive(root, env, "=", prim_num_eq);
-//     add_primitive(root, env, "eq", prim_eq);
-//     add_primitive(root, env, "println", prim_println);
-// }
+fn define_primitives(root: *mut (), environment: *mut *mut Object) {
+    todo!();
+    //     add_primitive(root, env, "quote", prim_quote);
+    //     add_primitive(root, env, "cons", prim_cons);
+    //     add_primitive(root, env, "car", prim_car);
+    //     add_primitive(root, env, "cdr", prim_cdr);
+    //     add_primitive(root, env, "setq", prim_setq);
+    //     add_primitive(root, env, "setcar", prim_setcar);
+    //     add_primitive(root, env, "while", prim_while);
+    //     add_primitive(root, env, "gensym", prim_gensym);
+    //     add_primitive(root, env, "+", prim_plus);
+    //     add_primitive(root, env, "-", prim_minus);
+    //     add_primitive(root, env, "<", prim_lt);
+    //     add_primitive(root, env, "define", prim_define);
+    //     add_primitive(root, env, "defun", prim_defun);
+    //     add_primitive(root, env, "defmacro", prim_defmacro);
+    //     add_primitive(root, env, "macroexpand", prim_macroexpand);
+    //     add_primitive(root, env, "lambda", prim_lambda);
+    //     add_primitive(root, env, "if", prim_if);
+    //     add_primitive(root, env, "=", prim_num_eq);
+    //     add_primitive(root, env, "eq", prim_eq);
+    //     add_primitive(root, env, "println", prim_println);
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
     let memory = allocate_semispace();
