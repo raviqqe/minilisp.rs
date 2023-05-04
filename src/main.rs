@@ -18,10 +18,10 @@
 //     exit(1);
 // }
 
-enum Type {
+enum Payload {
     // Regular objects visible from the user
-    Integer = 1,
-    Cell,
+    Integer(isize),
+    Cell(Rc<RefCell<Object>>, Rc<RefCell<Object>>),
     Symbol,
     Primitive,
     Function,
@@ -42,16 +42,10 @@ enum Type {
 // struct Obj;
 // typedef struct Obj *Primitive(void *root, struct Obj **env, struct Obj **args);
 
+#[derive(Debug, Default)]
 struct Object {
-    // The first word of the object represents the type of the object. Any code that handles object
-    // needs to check its type first, then access the following union members.
-    int type;
-
-    // The total size of the object, including "type" field, this field, the contents, and the
-    // padding at the end of the object.
-    int size;
-
-    // Object values.
+    size: usize, // includes the size field itself and padding.
+    payload: Payload,
     union {
         // Int
         int value;
@@ -79,11 +73,11 @@ struct Object {
         // Forwarding pointer
         void *moved;
     };
-} Obj;
+} 
 
 // Constants
-const TRUE:  Object = &(Obj){ TTRUE };
-const *Nil = &(Obj){ TNIL };
+const TRUE:  Object = Object{ TTRUE };
+const NIL: Object = Object{ TNIL };
 const *Dot = &(Obj){ TDOT };
 const *Cparen = &(Obj){ TCPAREN };
 
