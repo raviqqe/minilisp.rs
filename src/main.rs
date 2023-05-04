@@ -1,4 +1,4 @@
-use std::{cell::RefCell, error::Error};
+use std::{cell::RefCell, error::Error, ptr::null};
 
 // #include <assert.h>
 // #include <ctype.h>
@@ -97,21 +97,23 @@ thread_local! {
     static SYMBOLS: RefCell<Object> = Default::default();
 }
 
-// //======================================================================
-// // Memory management
-// //======================================================================
+//======================================================================
+// Memory management
+//======================================================================
 
-// // The size of the heap in byte
-// #define MEMORY_SIZE 65536
+// The size of the heap in byte
+const MEMORY_SIZE: usize = 65536;
 
-// // The pointer pointing to the beginning of the current heap
-// static void *memory;
+thread_local! {
+    // The pointer pointing to the beginning of the current heap
+    static MEMORY: *const () = null();
 
-// // The pointer pointing to the beginning of the old heap
-// static void *from_space;
+    // The pointer pointing to the beginning of the old heap
+    static FROM_SPACE:*const () = null();
 
-// // The number of bytes allocated from the heap
-// static size_t mem_nused = 0;
+    // The number of bytes allocated from the heap
+    static USED_MEMORY: usize = 0;
+}
 
 // // Flags to debug GC
 // static bool gc_running = false;
@@ -254,9 +256,16 @@ thread_local! {
 //     return newloc;
 // }
 
-// static void *alloc_semispace() {
-//     return mmap(NULL, MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
-// }
+fn allocate_semispace() -> *const () {
+    mmap(
+        NULL,
+        MEMORY_SIZE,
+        PROT_READ | PROT_WRITE,
+        MAP_PRIVATE | MAP_ANON,
+        -1,
+        0,
+    )
+}
 
 // // Copies the root objects.
 // static void forward_root_objects(void *root) {
@@ -964,7 +973,7 @@ thread_local! {
 // }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let memory = alloc_semispace();
+    let memory = allocate_semispace();
 
     SYMBOLS.with(|symbols| {
         *symbols.borrow_mut() = NIL;
