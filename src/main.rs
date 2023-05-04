@@ -980,14 +980,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     loop {
         let expression = read_expression(root);
 
-        match expression {}
-        if !expression {
-            break;
-        } else if matches!(&expression, Payload::Parentheses(_)) {
-            error("Stray close parenthesis");
-        }
-        if (*expr == Dot) {
-            error("Stray dot");
+        match read_expression(root) {
+            None => break,
+            Some(Payload::Parentheses(_)) => panic!("stray closed parenthesis"),
+            Some(Payload::Dot(_)) => panic!("stray dot"),
+            Some(expression) => 
         }
 
         println!("{}", evalulate(root, environment, expression));
