@@ -22,8 +22,8 @@ enum Payload {
     // Regular objects visible from the user
     Integer(isize),
     Cell(Rc<RefCell<Object>>, Rc<RefCell<Object>>),
-    Symbol,
-    Primitive,
+    Symbol(Rc<str>),
+    Primitive(fn () -> ()),
     Function,
     Macro,
     Environment,
@@ -46,33 +46,33 @@ enum Payload {
 struct Object {
     size: usize, // includes the size field itself and padding.
     payload: Payload,
-    union {
-        // Int
-        int value;
-        // Cell
-        struct {
-            struct Obj *car;
-            struct Obj *cdr;
-        };
-        // Symbol
-        char name[1];
-        // Primitive
-        Primitive *fn;
-        // Function or Macro
-        struct {
-            struct Obj *params;
-            struct Obj *body;
-            struct Obj *env;
-        };
-        // Environment frame. This is a linked list of association lists
-        // containing the mapping from symbols to their value.
-        struct {
-            struct Obj *vars;
-            struct Obj *up;
-        };
-        // Forwarding pointer
-        void *moved;
-    };
+    // union {
+    //     // Int
+    //     int value;
+    //     // Cell
+    //     struct {
+    //         struct Obj *car;
+    //         struct Obj *cdr;
+    //     };
+    //     // Symbol
+    //     char name[1];
+    //     // Primitive
+    //     Primitive *fn;
+    //     // Function or Macro
+    //     struct {
+    //         struct Obj *params;
+    //         struct Obj *body;
+    //         struct Obj *env;
+    //     };
+    //     // Environment frame. This is a linked list of association lists
+    //     // containing the mapping from symbols to their value.
+    //     struct {
+    //         struct Obj *vars;
+    //         struct Obj *up;
+    //     };
+    //     // Forwarding pointer
+    //     void *moved;
+    // };
 } 
 
 // Constants
