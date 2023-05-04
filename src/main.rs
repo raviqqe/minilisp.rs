@@ -18,7 +18,7 @@
 //     exit(1);
 // }
 
-enum Object {
+enum Type {
     // Regular objects visible from the user
     Integer = 1,
     Cell,
@@ -42,51 +42,50 @@ enum Object {
 // struct Obj;
 // typedef struct Obj *Primitive(void *root, struct Obj **env, struct Obj **args);
 
-// // The object type
-// typedef struct Obj {
-//     // The first word of the object represents the type of the object. Any code that handles object
-//     // needs to check its type first, then access the following union members.
-//     int type;
+struct Object {
+    // The first word of the object represents the type of the object. Any code that handles object
+    // needs to check its type first, then access the following union members.
+    int type;
 
-//     // The total size of the object, including "type" field, this field, the contents, and the
-//     // padding at the end of the object.
-//     int size;
+    // The total size of the object, including "type" field, this field, the contents, and the
+    // padding at the end of the object.
+    int size;
 
-//     // Object values.
-//     union {
-//         // Int
-//         int value;
-//         // Cell
-//         struct {
-//             struct Obj *car;
-//             struct Obj *cdr;
-//         };
-//         // Symbol
-//         char name[1];
-//         // Primitive
-//         Primitive *fn;
-//         // Function or Macro
-//         struct {
-//             struct Obj *params;
-//             struct Obj *body;
-//             struct Obj *env;
-//         };
-//         // Environment frame. This is a linked list of association lists
-//         // containing the mapping from symbols to their value.
-//         struct {
-//             struct Obj *vars;
-//             struct Obj *up;
-//         };
-//         // Forwarding pointer
-//         void *moved;
-//     };
-// } Obj;
+    // Object values.
+    union {
+        // Int
+        int value;
+        // Cell
+        struct {
+            struct Obj *car;
+            struct Obj *cdr;
+        };
+        // Symbol
+        char name[1];
+        // Primitive
+        Primitive *fn;
+        // Function or Macro
+        struct {
+            struct Obj *params;
+            struct Obj *body;
+            struct Obj *env;
+        };
+        // Environment frame. This is a linked list of association lists
+        // containing the mapping from symbols to their value.
+        struct {
+            struct Obj *vars;
+            struct Obj *up;
+        };
+        // Forwarding pointer
+        void *moved;
+    };
+} Obj;
 
 // Constants
-const Obj *True = &(Obj){ TTRUE };
-const Obj *Nil = &(Obj){ TNIL };
-const Obj *Dot = &(Obj){ TDOT };
-const Obj *Cparen = &(Obj){ TCPAREN };
+const TRUE:  Object = &(Obj){ TTRUE };
+const *Nil = &(Obj){ TNIL };
+const *Dot = &(Obj){ TDOT };
+const *Cparen = &(Obj){ TCPAREN };
 
 // // The list containing all symbols. Such data structure is traditionally called the "obarray", but I
 // // avoid using it as a variable name as this is not an array but a list.
