@@ -324,18 +324,23 @@ fn allocate_semispace() -> *mut () {
 // // Constructors
 // //======================================================================
 
-// static Obj *make_int(void *root, int value) {
-//     Obj *r = alloc(root, TINT, sizeof(int));
-//     r->value = value;
-//     return r;
-// }
+fn make_integer(root: *mut (), value: isize) -> *mut Object {
+    let object = allocate(root, Type::Integer, size_of::<isize>());
 
-// static Obj *cons(void *root, Obj **car, Obj **cdr) {
-//     Obj *cell = alloc(root, TCELL, sizeof(Obj *) * 2);
-//     cell->car = *car;
-//     cell->cdr = *cdr;
-//     return cell;
-// }
+    unsafe { (*object).payload.integer = value };
+
+    return object;
+}
+
+fn cons(root: *mut (), car: *mut Object, cdr: *mut Object) -> *mut Object {
+    let object = allocate(root, Type::Cell, size_of::<Cell>());
+
+    unsafe {
+        (*object).payload.cell = ManuallyDrop::new(Cell { car, cdr });
+    }
+
+    return object;
+}
 
 // static Obj *make_symbol(void *root, char *name) {
 //     Obj *sym = alloc(root, TSYMBOL, strlen(name) + 1);
@@ -358,14 +363,14 @@ fn allocate_semispace() -> *mut () {
 //     return r;
 // }
 
-fn make_environment(
-    root: *mut (),
-    variables: *mut *mut Object,
-    up: *mut *mut Object,
-) -> *mut Object {
-    let environment = unsafe { allocate(root, Type::Environment, size_of::<Object>() * 2) };
-    environment.vars = *vars;
-    environment.up = *up;
+fn make_environment(root: *mut (), variables: *mut Object, up: *mut Object) -> *mut Object {
+    let environment = unsafe { allocate(root, Type::Environment, size_of::<Environment>()) };
+
+    unsafe {
+        environment.vars = vars;
+        environment.up = up;
+    }
+
     return environment;
 }
 
