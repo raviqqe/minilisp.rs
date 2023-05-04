@@ -973,7 +973,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
     let root = None;
     // DEFINE2(env, expr);
-    // *env = make_env(root, &Nil, &Nil);
+    let environment = make_environment(root, &NIL, &NIL);
     // define_constants(root, env);
     // define_primitives(root, env);
 
@@ -984,10 +984,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             None => break,
             Some(Payload::Parentheses(_)) => panic!("stray closed parenthesis"),
             Some(Payload::Dot(_)) => panic!("stray dot"),
-            Some(expression) => 
-        }
-
-        println!("{}", evalulate(root, environment, expression));
+            Some(expression) => println!("{}", evalulate(root, environment, expression)),
+        };
     }
 
     Ok(())
