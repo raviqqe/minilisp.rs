@@ -48,7 +48,8 @@ enum Payload {
     Parentheses,
 }
 
-type PrimitiveFunction =  fn(void *root, struct Obj **env, struct Obj **args) -> Rc<RefCell<Object>>;
+type PrimitiveFunction =
+    fn(root: Option<usize>, environmnt: &mut Object, args: &mut Object) -> Rc<RefCell<Object>>;
 
 #[derive(Debug, Default)]
 struct Object {
