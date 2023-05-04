@@ -972,10 +972,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         *symbols.borrow_mut() = NIL;
     });
     let root = None;
-    // DEFINE2(env, expr);
+    // DEFINE2(environment, expression);
     let environment = make_environment(root, &NIL, &NIL);
-    // define_constants(root, env);
-    // define_primitives(root, env);
+    define_constants(root, environment);
+    define_primitives(root, environment);
 
     loop {
         let expression = read_expression(root);
