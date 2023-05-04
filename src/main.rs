@@ -968,7 +968,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Memory allocation
     // memory = alloc_semispace();
 
-    // Constants and primitives
     SYMBOLS.with(|symbols| {
         *symbols.borrow_mut() = NIL;
     });
