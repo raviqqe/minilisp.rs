@@ -19,7 +19,9 @@
 // }
 
 
-struct Function {parameters: Rc<RefCell<Object>>, }
+struct Function {
+    parameters: Rc<RefCell<Object>>, 
+}
 
 enum Payload {
     // Regular objects visible from the user
@@ -68,10 +70,10 @@ struct Object {
 } 
 
 // Constants
-const TRUE:  Object = Object{ TTRUE };
-const NIL: Object = Object{ TNIL };
-const *Dot = &(Obj){ TDOT };
-const *Cparen = &(Obj){ TCPAREN };
+const TRUE:  Object = Object{ r#payload: Payload::True, ..Default::default() };
+const NIL: Object = Object{r#payload: Payload::Nil, ..Default::default() };
+const DOT: Object = Object{ r#payload: Payload::Dot, ..Default::default()};
+const PARENTHESES: Object = Object{ r#payload: Payload::Parentheses, ..Default::default()};
 
 // // The list containing all symbols. Such data structure is traditionally called the "obarray", but I
 // // avoid using it as a variable name as this is not an array but a list.
