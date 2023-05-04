@@ -18,13 +18,16 @@
 //     exit(1);
 // }
 
+
+struct Function {parameters: Rc<RefCell<Object>>, }
+
 enum Payload {
     // Regular objects visible from the user
     Integer(isize),
     Cell(Rc<RefCell<Object>>, Rc<RefCell<Object>>),
     Symbol(Rc<str>),
     Primitive(fn () -> ()),
-    Function,
+    Function(),
     Macro,
     Environment,
     // The marker that indicates the object has been moved to other location by GC. The new location
@@ -47,17 +50,6 @@ struct Object {
     size: usize, // includes the size field itself and padding.
     payload: Payload,
     // union {
-    //     // Int
-    //     int value;
-    //     // Cell
-    //     struct {
-    //         struct Obj *car;
-    //         struct Obj *cdr;
-    //     };
-    //     // Symbol
-    //     char name[1];
-    //     // Primitive
-    //     Primitive *fn;
     //     // Function or Macro
     //     struct {
     //         struct Obj *params;
