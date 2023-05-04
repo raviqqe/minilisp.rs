@@ -1,3 +1,5 @@
+use std::{cell::RefCell, error::Error, rc::Rc, sync::RwLock};
+
 // #include <assert.h>
 // #include <ctype.h>
 // #include <stdarg.h>
@@ -18,17 +20,19 @@
 //     exit(1);
 // }
 
-
 struct Function {
-    parameters: Rc<RefCell<Object>>, 
+    parameters: Vec<Rc<RefCell<Object>>>,
+    body: Vec<Rc<RefCell<Object>>>,
+    environment: Vec<Rc<RefCell<Object>>>,
 }
 
+#[derive(Debug, Default)]
 enum Payload {
     // Regular objects visible from the user
     Integer(isize),
     Cell(Rc<RefCell<Object>>, Rc<RefCell<Object>>),
     Symbol(Rc<str>),
-    Primitive(fn () -> ()),
+    Primitive(fn() -> ()),
     Function(),
     Macro,
     Environment,
@@ -38,6 +42,7 @@ enum Payload {
     Moved,
     // Const objects. They are statically allocated and will never be managed by GC.
     True,
+    #[default]
     Nil,
     Dot,
     Parentheses,
@@ -67,17 +72,29 @@ struct Object {
     //     // Forwarding pointer
     //     void *moved;
     // };
-} 
+}
 
 // Constants
-const TRUE:  Object = Object{ r#payload: Payload::True, ..Default::default() };
-const NIL: Object = Object{r#payload: Payload::Nil, ..Default::default() };
-const DOT: Object = Object{ r#payload: Payload::Dot, ..Default::default()};
-const PARENTHESES: Object = Object{ r#payload: Payload::Parentheses, ..Default::default()};
+const TRUE: Object = Object {
+    r#payload: Payload::True,
+    ..Default::default()
+};
+const NIL: Object = Object {
+    r#payload: Payload::Nil,
+    ..Default::default()
+};
+const DOT: Object = Object {
+    r#payload: Payload::Dot,
+    ..Default::default()
+};
+const PARENTHESES: Object = Object {
+    r#payload: Payload::Parentheses,
+    ..Default::default()
+};
 
-// // The list containing all symbols. Such data structure is traditionally called the "obarray", but I
-// // avoid using it as a variable name as this is not an array but a list.
-// static Obj *Symbols;
+// The list containing all symbols. Such data structure is traditionally called the "obarray", but I
+// avoid using it as a variable name as this is not an array but a list.
+const SYMBOLS: RwLock<RefCell<Object>> = Default::default();
 
 // //======================================================================
 // // Memory management
@@ -945,28 +962,31 @@ const PARENTHESES: Object = Object{ r#payload: Payload::Parentheses, ..Default::
 //     return val && val[0];
 // }
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     // Memory allocation
-    memory = alloc_semispace();
+    // memory = alloc_semispace();
 
     // Constants and primitives
-    Symbols = Nil;
-    void *root = NULL;
-    DEFINE2(env, expr);
-    *env = make_env(root, &Nil, &Nil);
-    define_constants(root, env);
-    define_primitives(root, env);
+    let mut symbols = SYMBOLS.write()?;
+    *symbols.get_mut() = NIL;
+    // void * root = NULL;
+    // DEFINE2(env, expr);
+    // *env = make_env(root, &Nil, &Nil);
+    // define_constants(root, env);
+    // define_primitives(root, env);
 
-    // The main loop
-    for (;;) {
-        *expr = read_expr(root);
-        if (!*expr)
-            return 0;
-        if (*expr == Cparen)
-            error("Stray close parenthesis");
-        if (*expr == Dot)
-            error("Stray dot");
-        print(eval(root, env, expr));
-        printf("\n");
-    }
+    // // The main loop
+    // for (;;) {
+    //     *expr = read_expr(root);
+    //     if (!*expr)
+    //         return 0;
+    //     if (*expr == Cparen)
+    //         error("Stray close parenthesis");
+    //     if (*expr == Dot)
+    //         error("Stray dot");
+    //     print(eval(root, env, expr));
+    //     printf("\n");
+    // }
+
+    Ok(())
 }
