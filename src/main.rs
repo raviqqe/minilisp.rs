@@ -969,7 +969,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     // memory = alloc_semispace();
 
     // Constants and primitives
-    *SYMBOLS = NIL;
+    SYMBOLS.with(|symbols| {
+        *symbols.borrow_mut() = NIL;
+    });
     // void * root = NULL;
     // DEFINE2(env, expr);
     // *env = make_env(root, &Nil, &Nil);
