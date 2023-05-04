@@ -1,4 +1,4 @@
-use std::{cell::RefCell, error::Error, rc::Rc, sync::RwLock};
+use std::{cell::RefCell, error::Error, rc::Rc};
 
 // #include <assert.h>
 // #include <ctype.h>
@@ -77,24 +77,26 @@ struct Object {
 // Constants
 const TRUE: Object = Object {
     r#payload: Payload::True,
-    ..Default::default()
+    size: 0,
 };
 const NIL: Object = Object {
     r#payload: Payload::Nil,
-    ..Default::default()
+    size: 0,
 };
 const DOT: Object = Object {
     r#payload: Payload::Dot,
-    ..Default::default()
+    size: 0,
 };
 const PARENTHESES: Object = Object {
     r#payload: Payload::Parentheses,
-    ..Default::default()
+    size: 0,
 };
 
 // The list containing all symbols. Such data structure is traditionally called the "obarray", but I
 // avoid using it as a variable name as this is not an array but a list.
-const SYMBOLS: RwLock<RefCell<Object>> = Default::default();
+thread_local! {
+    static SYMBOLS: RefCell<Object> = Default::default();
+}
 
 // //======================================================================
 // // Memory management
@@ -967,8 +969,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // memory = alloc_semispace();
 
     // Constants and primitives
-    let mut symbols = SYMBOLS.write()?;
-    *symbols.get_mut() = NIL;
+    *SYMBOLS = NIL;
     // void * root = NULL;
     // DEFINE2(env, expr);
     // *env = make_env(root, &Nil, &Nil);
