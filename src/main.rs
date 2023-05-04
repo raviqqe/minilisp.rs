@@ -21,16 +21,16 @@ use std::{cell::RefCell, error::Error, rc::Rc};
 // }
 
 struct Function {
-    parameters: Vec<Rc<RefCell<Object>>>,
-    body: Vec<Rc<RefCell<Object>>>,
-    environment: Vec<Rc<RefCell<Object>>>,
+    parameters: *mut Object,
+    body: *mut Object,
+    environment: *mut Object,
 }
 
 #[derive(Debug, Default)]
 enum Payload {
     // Regular objects visible from the user
     Integer(isize),
-    Cell(Rc<RefCell<Object>>, Rc<RefCell<Object>>),
+    Cell(*mut Object, *mut Object),
     Symbol(Rc<str>),
     Primitive(PrimitiveFunction),
     Function(),
