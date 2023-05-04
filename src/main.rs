@@ -978,14 +978,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     define_primitives(root, environment);
 
     loop {
-        let expression = read_expression(root);
-
-        match read_expression(root) {
+        match &read_expression(root).payload {
             None => break,
-            Some(Payload::Parentheses(_)) => panic!("stray closed parenthesis"),
-            Some(Payload::Dot(_)) => panic!("stray dot"),
+            Some(Payload::Parentheses) => return Err("stray closed parenthesis".into()),
+            Some(Payload::Dot) => return Err("stray dot".into()),
             Some(expression) => println!("{}", evalulate(root, environment, expression)),
-        };
+        }
     }
 
     Ok(())
