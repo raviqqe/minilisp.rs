@@ -1,5 +1,3 @@
-// // This software is in the public domain.
-
 // #include <assert.h>
 // #include <ctype.h>
 // #include <stdarg.h>
@@ -20,30 +18,29 @@
 //     exit(1);
 // }
 
-// //======================================================================
-// // Lisp objects
-// //======================================================================
+//======================================================================
+// Lisp objects
+//======================================================================
 
-// // The Lisp object type
-// enum {
-//     // Regular objects visible from the user
-//     TINT = 1,
-//     TCELL,
-//     TSYMBOL,
-//     TPRIMITIVE,
-//     TFUNCTION,
-//     TMACRO,
-//     TENV,
-//     // The marker that indicates the object has been moved to other location by GC. The new location
-//     // can be found at the forwarding pointer. Only the functions to do garbage collection set and
-//     // handle the object of this type. Other functions will never see the object of this type.
-//     TMOVED,
-//     // Const objects. They are statically allocated and will never be managed by GC.
-//     TTRUE,
-//     TNIL,
-//     TDOT,
-//     TCPAREN,
-// };
+enum Object {
+    // Regular objects visible from the user
+    Integer = 1,
+    Cell,
+    Symbol,
+    Primitive,
+    Function,
+    Macro,
+    Environment,
+    // The marker that indicates the object has been moved to other location by GC. The new location
+    // can be found at the forwarding pointer. Only the functions to do garbage collection set and
+    // handle the object of this type. Other functions will never see the object of this type.
+    GcMoved,
+    // Const objects. They are statically allocated and will never be managed by GC.
+    TTRUE,
+    TNIL,
+    TDOT,
+    TCPAREN,
+};
 
 // // Typedef for the primitive function
 // struct Obj;
@@ -89,11 +86,11 @@
 //     };
 // } Obj;
 
-// // Constants
-// static Obj *True = &(Obj){ TTRUE };
-// static Obj *Nil = &(Obj){ TNIL };
-// static Obj *Dot = &(Obj){ TDOT };
-// static Obj *Cparen = &(Obj){ TCPAREN };
+// Constants
+const Obj *True = &(Obj){ TTRUE };
+const Obj *Nil = &(Obj){ TNIL };
+const Obj *Dot = &(Obj){ TDOT };
+const Obj *Cparen = &(Obj){ TCPAREN };
 
 // // The list containing all symbols. Such data structure is traditionally called the "obarray", but I
 // // avoid using it as a variable name as this is not an array but a list.
@@ -966,10 +963,6 @@
 // }
 
 fn main() {
-    // Debug flags
-    debug_gc = getEnvFlag("MINILISP_DEBUG_GC");
-    always_gc = getEnvFlag("MINILISP_ALWAYS_GC");
-
     // Memory allocation
     memory = alloc_semispace();
 
