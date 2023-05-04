@@ -971,22 +971,26 @@ fn main() -> Result<(), Box<dyn Error>> {
     SYMBOLS.with(|symbols| {
         *symbols.borrow_mut() = NIL;
     });
-    // void * root = NULL;
+    let root = None;
     // DEFINE2(env, expr);
     // *env = make_env(root, &Nil, &Nil);
     // define_constants(root, env);
     // define_primitives(root, env);
 
-    for (;;) {
-        *expr = read_expr(root);
-        if (!*expr)
-            return 0;
-        if (*expr == Cparen)
+    loop {
+        let expression = read_expression(root);
+
+        match expression {}
+        if !expression {
+            break;
+        } else if matches!(&expression, Payload::Parentheses(_)) {
             error("Stray close parenthesis");
-        if (*expr == Dot)
+        }
+        if (*expr == Dot) {
             error("Stray dot");
-        print(eval(root, env, expr));
-        printf("\n");
+        }
+
+        println!("{}", evalulate(root, environment, expression));
     }
 
     Ok(())
