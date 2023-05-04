@@ -1,4 +1,4 @@
-use std::{cell::RefCell, error::Error, rc::Rc};
+use std::{cell::RefCell, error::Error};
 
 // #include <assert.h>
 // #include <ctype.h>
@@ -31,7 +31,7 @@ enum Payload {
     // Regular objects visible from the user
     Integer(isize),
     Cell(*mut Object, *mut Object),
-    Symbol(Rc<str>),
+    Symbol(*const str),
     Primitive(PrimitiveFunction),
     Function(),
     Macro,
@@ -49,7 +49,7 @@ enum Payload {
 }
 
 type PrimitiveFunction =
-    fn(root: Option<usize>, environmnt: &mut Object, args: &mut Object) -> Rc<RefCell<Object>>;
+    fn(root: Option<usize>, environmnt: *mut Object, args: *mut Object) -> *mut Object;
 
 #[derive(Debug, Default)]
 struct Object {
