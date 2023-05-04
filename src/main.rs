@@ -40,7 +40,7 @@ enum Payload {
     // can be found at the forwarding pointer. Only the functions to do garbage collection set and
     // handle the object of this type. Other functions will never see the object of this type.
     Moved,
-    // Const objects. They are statically allocated and will never be managed by GC.
+    // Constant objects. They are statically allocated and will never be managed by GC.
     True,
     #[default]
     Nil,
